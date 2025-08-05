@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physician Page</title>
+    <link rel="stylesheet" href="doc.css">
+    <link rel="shortcut icon" href="download.jpeg">
+</head>
+<body>
+    <h1>Welcome, Medical Staff</h1>
+    <br>
+    <p>This is your dashboard.</p>
+    <br>
+    <div class="Info">
+        <p id="name">Physician's Name:</p>
+        <p id="userID">UserID:</p>
+        <p id="E-mail">E-mail:</p>
+        <p id="MS">Medical Specialization:</p>
+    </div>
+    <div class="Patients">
+        <span id="arrow1">&#9660;</span>
+        <label for="patient-search"><b>Your Patients</b></label>
+        <input type="text" name="patientName" id="patientName" placeholder="Search by User ID">
+    </div>
+    <div class="patients-table" id="patientsTable" style="display: none;">
+        <table border="2">
+            <thead>
+                <tr>
+                    <th>User_ID</th>
+                    <th>Gender</th>
+                    <th>Contact</th>
+                    <th>Chronic_Conditions</th>
+                    <th>Purpose_of_Visit</th>
+                    <th>Prescribing_Doctor_ID</th>
+                    <th>Allergies</th>
+                    <th>Medication</th>
+                    <th>Dosage</th>
+                    <th>Edit/Delete</th>
+                </tr>
+            </thead>
+            <tbody id="patientsTableBody"></tbody>
+        </table>
+    </div>
+    <br>
+    <button id="addPatientButton" onclick="window.location.href='doc_add_patient.html'">Add Patient</button>
+    <div style="position: absolute; top: 20px; right: 20px;">
+            <button onclick="redirectToLogin()" style="
+                background-color: #007BFF;
+                color: white;
+                border: none;
+                padding: 10px 16px;
+                border-radius: 5px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            ">
+                Logout
+            </button>
+        </div>
+    <script>
+        function redirectToLogin() {
+            localStorage.clear(); // Optional: clear tokens/session info
+            window.location.href = 'index.html';
+        }
+        // Constants for token expiration times (in minutes)
+        const ACCESS_TOKEN_EXPIRE_MINUTES = 1; // Access token expires in 1 minute
+        const REFRESH_TOKEN_EXPIRE_MINUTES = 3; // Refresh token expires in 2 minutes
+
+        // Function to get the user's location using navigator.geolocation
+        function getLocation() {
+            return new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => resolve(position),
+                        (error) => reject(error)
+                    );
+                } else {
+                    reject(new Error("Geolocation is not supported by this browser."));
+                }
+            });
+        }
+
+        // Function to get the user's location using IP Geolocation as a fallback
+        async function getIPLocation() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                console.log('IP Geolocation data:', data); // Log the IP geolocation data
+                return {
+                    coords: {
+                        latitude: data.latitude,
+                        longitude: data.longitude
+                    }
+                };
+            } catch (error) {
+                console.error('IP Geolocation failed:', error);
+                return null;
+            }
+        }
+
+        // Function to capture OS and Browser info accurately
+        function getOS() {
+            let OSName = "Unknown OS";
+            if (navigator.appVersion.indexOf("Win") != -1) OSName = "Windows";
+            if (navigator.appVersion.indexOf("Mac") != -1) OSName = "MacOS";
+            if (navigator.appVersion.indexOf("X11") != -1) OSName = "UNIX";
+            if (navigator.appVersion.indexOf("Linux") != -1) OSName = "Linux";
+            return OSName;
+        }
+
+        function getBrowser() {
+            let userAgent = navigator.userAgent;
+            let browserName;
+
+            if (userAgent.match(/edg/i)) {
+                browserName = "Edge";
+            } else if (userAgent.match(/opr\//i)) {
+                browserName = "Opera";
+            } else if (userAgent.match(/chrome|chromium|crios/i)) {
+                browserName = "Chrome";
+            } else if (userAgent.match(/firefox|fxios/i)) {
+                browserName = "Firefox";
+            } else if (userAgent.match(/safari/i) && !userAgent.match(/crios|chromium|edg|opr|fxios/i)) {
+                browserName = "Safari";
+            } else {
+                browserName = "No browser detection";
+            }
+
+            return browserName;
+        }
+
+        // Function to refresh the access token
+        async function refreshAccessToken() {
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!refreshToken) {
+                console.error('No refresh token found');
+                return null;
+            }
+
+            try {
+                // Get the user's location
+                const position = await getLocation().catch(async () => await getIPLocation());
+                if (!position || !position.coords) {
+                    throw new Error("Unable to retrieve location.");
+                }
+                const location = `${position.coords.latitude},${position.coords.longitude}`;
+
+                // Get OS and Browser info
+                const os = getOS();
+                const browser = getBrowser();
+
+                // Send the refresh request with JSON data
+                const response = await fetch('http://100.89.45.27:8000/auth/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        refresh_token: refreshToken,
+                        current_location: location,
+                        os: os,
+                        browser: browser
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Refresh token error:', errorData);
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Token refresh response:", data);
+
+                // Update tokens in localStorage
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('refresh_token', data.refresh_token);
+                localStorage.setItem('access_token_expires', data.access_token_expires);
+                localStorage.setItem('refresh_token_expires', data.refresh_token_expires);
+                localStorage.setItem('user_info', data.user_info);
+
+                // Schedule the next token refresh
+                scheduleTokenRefresh();
+
+                return data.access_token;
+            } catch (error) {
+                console.error('Token refresh failed:', error);
+                localStorage.clear(); // Clear tokens on failure
+                window.location.href = 'login.html'; // Redirect to login page
+                return null;
+            }
+        }
+
+        // Function to schedule the next token refresh
+        function scheduleTokenRefresh() {
+            const accessTokenExpires = localStorage.getItem('access_token_expires');
+            if (!accessTokenExpires) return;
+
+            const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+            const expiresIn = accessTokenExpires - currentTime; // Time remaining until expiration
+
+            if (expiresIn <= 0) {
+                // Token has already expired, refresh immediately
+                refreshAccessToken();
+            } else {
+                // Schedule refresh 10 seconds before expiration
+                const refreshTime = (expiresIn - 10) * 1000; // Convert to milliseconds
+                setTimeout(refreshAccessToken, refreshTime);
+                console.log(`Next token refresh scheduled in ${refreshTime / 1000} seconds.`);
+            }
+        }
+
+        // Function to check token expiration and refresh if needed
+        async function checkTokenExpiration() {
+            const accessTokenExpires = localStorage.getItem('access_token_expires');
+            if (!accessTokenExpires) return;
+
+            const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+            if (currentTime >= accessTokenExpires) {
+                console.log('Access token expired. Refreshing...');
+                const newAccessToken = await refreshAccessToken();
+                if (!newAccessToken) {
+                    console.error('Failed to refresh access token');
+                    return;
+                }
+            }
+        }
+
+        // Function to fetch data with token refresh handling
+        async function fetchWithTokenRefresh(url, options = {}) {
+            await checkTokenExpiration(); // Check token expiration before making the request
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                console.error('No access token found');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            options.headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`,
+            };
+
+            const response = await fetch(url, options);
+            if (response.status === 401) {
+                // Token might be expired, try refreshing
+                const newToken = await refreshAccessToken();
+                if (newToken) {
+                    options.headers['Authorization'] = `Bearer ${newToken}`;
+                    return await fetch(url, options);
+                } else {
+                    throw new Error('Failed to refresh token');
+                }
+            }
+            return response;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check token expiration on page load
+            await checkTokenExpiration();
+
+            // Schedule the next token refresh
+            scheduleTokenRefresh();
+
+            // Retrieve token, user ID, and role from localStorage
+            const token = localStorage.getItem('access_token');
+            const userId = localStorage.getItem('user_id');
+            const role = localStorage.getItem('role');
+
+            console.log('Token:', token); // Debugging
+            console.log('User ID:', userId); // Debugging
+            console.log('Role:', role); // Debugging
+
+            // Redirect if not authenticated or not a doctor
+            if (!token || !userId || role !== 'Doctor') {
+                console.error('Unauthorized access. Redirecting to login page.'); // Debugging
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                // Fetch doctor details
+                const doctorRes = await fetchWithTokenRefresh(`http://100.89.45.27:8000/doctors`);
+                if (!doctorRes.ok) throw new Error('Failed to fetch doctor details');
+                const doctorData = await doctorRes.json();
+                console.log("Doctor details:", doctorData); // Debugging
+
+                // Fetch authenticated user details
+                const authRes = await fetchWithTokenRefresh(`http://100.89.45.27:8000/doctors`);
+                if (!authRes.ok) throw new Error('Failed to fetch user details');
+                const authData = await authRes.json();
+                console.log("User details:", authData); // Debugging
+
+                // Update dashboard with doctor details
+                document.getElementById('name').textContent += ` ${authData.Full_Name}`;
+                document.getElementById('userID').textContent += ` ${userId}`;
+                document.getElementById('E-mail').textContent += ` ${authData.Email || authData.email || 'N/A'}`;
+                document.getElementById('MS').textContent += ` ${doctorData.Department_Name_x || doctorData.department_name || 'N/A'}`;
+
+                // Fetch patients under the doctor's care
+                const patientsRes = await fetchWithTokenRefresh(`http://100.89.45.27:8000/doctors/responsible/patients`);
+                if (!patientsRes.ok) throw new Error('Failed to fetch patients');
+                const patientsData = await patientsRes.json();
+                console.log("Patients data:", patientsData); // Debugging
+
+                // Render patients table
+                const tableBody = document.getElementById('patientsTableBody');
+                patientsData.forEach(patient => {
+                    const row = tableBody.insertRow();
+                    row.innerHTML = `
+                        <td>${patient.User_ID}</td>
+                        <td>${patient.Gender}</td>
+                        <td>${patient.Contact}</td>
+                        <td>${patient.Chronic_Conditions}</td>
+                        <td>${patient.Purpose_of_Visit}</td>
+                        <td>${patient.Prescribing_Doctor_ID}</td>
+                        <td>${patient.Allergies}</td>
+                        <td>${patient.clinical_services.map(cs => cs.Medication_Name).join(', ')}</td>
+                        <td>${patient.clinical_services.map(cs => cs.Dosage_Instructions).join(', ')}</td>
+                        <td>
+                            <button onclick="handleEditPatient(${patient.User_ID})">Edit</button>
+                            <button onclick="deletePatient(${patient.User_ID})">Delete</button>
+                        </td>
+                    `;
+                });
+
+                // Toggle table visibility
+                document.getElementById('arrow1').addEventListener('click', () => {
+                    const table = document.getElementById('patientsTable');
+                    table.style.display = table.style.display === 'none' ? 'block' : 'none';
+                });
+
+                // Search functionality
+                document.getElementById('patientName').addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase();
+                    Array.from(tableBody.rows).forEach(row => {
+                        const userID = row.cells[0].textContent.toLowerCase();
+                        row.style.display = userID.includes(term) ? '' : 'none';
+                    });
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load dashboard data');
+            }
+        });
+
+        async function deletePatient(patientId) {
+            if (confirm('Are you sure you want to delete this patient?')) {
+                try {
+                    const res = await fetchWithTokenRefresh(`http://100.89.45.27:8000/patients/${patientId}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (res.ok) {
+                        alert('Patient deleted successfully.');
+                        location.reload(); // Refresh the page to reflect the changes
+                    } else {
+                        throw new Error('Failed to delete patient');
+                    }
+                } catch (error) {
+                    console.error('Delete failed:', error);
+                    alert('Failed to delete patient. Please try again.');
+                }
+            }
+        }
+
+        async function handleEditPatient(patientId) {
+            const email = localStorage.getItem('email'); // Get doctor's email from local storage
+            //localStorage.setItem('email', 'doctor@example.com');
+            window.location.href = `OTP_login.html?patient_id=${patientId}&email=${email}`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+/* General reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Body styling */
+body {
+    background-color: #f8f9fa;
+    padding: 20px;
+    height: 100vh;
+    color: #2c3e50; /* Dark text for readability */
+}
+
+/* Buttons */
+.btn, #addPatientButton {
+    width: 100%;
+    padding: 12px;
+    background-color: #4a90e2;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.btn:hover, #addPatientButton:hover {
+    background-color: #357ABD;
+}
+
+.btn:active, #addPatientButton:active {
+    background-color: #2b6aa5;
+}
+
+/* Info Box */
+.Info {
+    background-color: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 3px solid #ddd;
+    color: #2c3e50; /* Ensuring text is readable */
+}
+
+.Info p {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+/* Sections & Containers */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+    font-weight: bold;
+    font-size: 24px;
+}
+
+.section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    color: #2c3e50;
+}
+
+.section-title {
+    color: #3498db;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+/* Medical Info Grid */
+.medical-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-item {
+    margin-bottom: 1rem;
+}
+
+.info-label {
+    color: #0c7db9;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.info-content {
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    color: #2c3e50;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+th {
+    background-color: #3498db;
+    color: white;
+}
+
+tr:hover {
+    background-color: #f5fafa;
+}
+
+/* Status Labels */
+.status {
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+}
+
+.paid {
+    background-color: #2ecc71;
+}
+
+.unpaid {
+    background-color: #e74c3c;
+}
+
+.pending {
+    background-color: #f1c40f;
+}
+
+/* Patients Section */
+.Patients, .addPatients {
+    width: 100%;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.Patients label, .addPatients label {
+    font-size: 15px;
+    font-weight: bold;
+    margin-left: 5px;
+    color: #2c3e50;
+}
+
+.Patients input {
+    font-size: 15px;
+    padding-left: 5px;
+    width: 500px;
+    height: 25px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #2c3e50;
+}
+
+/* Insert Data Form */
+.insertData {
+    margin-top: 20px;
+    width: 100%;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 3px solid #ddd;
+    color: #2c3e50;
+}
+
+.insertData label {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.insertData input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    font-size: 16px;
+    color: #2c3e50;
+}
+
+/* Arrow Styling */
+#arrow1, #arrow2 {
+    font-size: 15px;
+    margin-right: 5px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    color: #2c3e50;
+}
+
+/* Buttons in Edit Page */
+.form-actions button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.form-actions button:first-child {
+    background-color: #007bff;
+    color: white;
+}
+
+.form-actions button:first-child:hover {
+    background-color: #0056b3;
+}
+
+.form-actions button:last-child {
+    background-color: #dc3545;
+    color: white;
+}
+
+.form-actions button:last-child:hover {
+    background-color: #c82333;
+}

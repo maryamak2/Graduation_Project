@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add a new patient</title>
+    <link rel="stylesheet" href="doc.css">
+    <link rel="shortcut icon" href="download.jpeg">
+</head>
+<body>
+<div class="addPatients" id="addPatientsSection">
+    <span id="arrow2">&#9660;</span> <!-- Arrow icon -->
+    <label for="patient-add"><b>Add a patient</b></label>
+</div>
+
+<div class="insertData" id="newPatientData">
+    <form id="patientForm">
+        <label for="userID"><b>User ID :</b></label>
+        <input type="text" name="userID" id="userID" placeholder="User ID"><br>
+        <label for="patientClinicalID"><b>Patient Clinical ID :</b></label>
+        <input type="text" name="patientClinicalID" id="patientClinicalID" placeholder="Patient Clinical ID"><br>
+        <label for="patientBillingID"><b>Patient Billing ID :</b></label>
+        <input type="text" name="patientBillingID" id="patientBillingID" placeholder="Patient Billing ID"><br>
+        <label for="patientGender"><b>Patient Gender :</b></label>
+        <input type="text" name="patientGender" id="patientGender" placeholder="Patient Gender"><br>
+        <label for="patientContact"><b>Contact :</b></label>
+        <input type="text" name="patientContact" id="patientContact" placeholder="Patient Contact"><br>
+        <label for="chronicConditions"><b>Chronic Conditions :</b></label>
+        <input type="text" name="chronicConditions" id="chronicConditions" placeholder="Chronic Conditions"><br>
+        <label for="purposeOfVisit"><b>Purpose of Visit :</b></label>
+        <input type="text" name="purposeOfVisit" id="purposeOfVisit" placeholder="Purpose of Visit"><br>
+        <label for="prescribingNurseID"><b>Prescribing Nurse ID :</b></label>
+        <input type="text" name="prescribingNurseID" id="prescribingNurseID" placeholder="Prescribing Nurse ID"><br>
+        <label for="allergies"><b>Allergies :</b></label>
+        <input type="text" name="allergies" id="allergies" placeholder="Allergies"><br>
+
+        <button type="button" class="btn" onclick="submitPatient()">Add</button>
+    
+    </form>
+</div>
+
+<script>
+    async function submitPatient() {
+        const doctorId = localStorage.getItem('user_id');
+        const token = localStorage.getItem('access_token');
+        const fallbackNurseID = 678623;
+    
+        if (!token || !doctorId) {
+            alert("Session expired or invalid doctor. Please log in again.");
+            window.location.href = "index.html";
+            return;
+        }
+    
+        // Grab and validate form values
+        const nurseInput = document.getElementById('prescribingNurseID');
+        let nurseID = fallbackNurseID;
+    
+        if (nurseInput && nurseInput.value.trim() !== '') {
+            nurseID = parseInt(nurseInput.value.trim(), 10);
+            if (isNaN(nurseID)) {
+                alert("Prescribing Nurse ID must be a number.");
+                return;
+            }
+        }
+    
+        const formData = {
+            User_ID: parseInt(document.getElementById('userID').value),
+            Patient_ID_Clinical: document.getElementById('patientClinicalID').value,
+            Patient_ID_Billing: document.getElementById('patientBillingID').value,
+            Gender: document.getElementById('patientGender').value,
+            Contact: document.getElementById('patientContact').value,
+            Allergies: document.getElementById('allergies').value,
+            Chronic_Conditions: document.getElementById('chronicConditions').value,
+            Purpose_of_Visit: document.getElementById('purposeOfVisit').value,
+            Prescribing_Doctor_ID: parseInt(doctorId),
+            Prescribing_Nurse_ID: nurseID
+        };
+    
+        try {
+            const response = await fetch('http://100.89.45.27:8000/patients', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(formData),
+            });
+    
+            const result = await response.json();
+    
+            if (response.ok) {
+                alert('Patient added successfully!');
+                document.getElementById('patientForm').reset();
+                document.getElementById('prescribingDoctorID').value = doctorId;
+            } else {
+                console.error("Error response:", result);
+                alert("Error: " + JSON.stringify(result.detail || result));
+            }
+        } catch (error) {
+            console.error('Error submitting patient:', error);
+            alert('An error occurred while submitting the form.');
+        }
+    }
+    </script>
+    
+</body>
+</html>

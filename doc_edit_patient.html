@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Patient</title>
+    <link rel="stylesheet" href="doc.css"> <!-- Link to your CSS file -->
+</head>
+<body>
+    <h1>Edit Patient Medication and Dosage</h1>
+    
+    <!-- Form to edit medication and dosage -->
+    <form id="editForm">
+        <!-- Medication Field -->
+        <label for="medication">Medication:</label>
+        <input type="text" id="medication" name="Medication_Name" required>
+        <br>
+        
+        <!-- Dosage Field -->
+        <label for="dosage">Dosage Instructions:</label>
+        <input type="text" id="dosage" name="Dosage_Instructions" required>
+        <br>
+        
+        <!-- Submit Button -->
+        <button type="submit">Save Changes</button>
+    </form>
+
+    <!-- Link to go back to the dashboard -->
+    <p><a href="doc.html">Back to Dashboard</a></p>
+
+    <script>
+        // Constants for token expiration times (in minutes)
+        const ACCESS_TOKEN_EXPIRE_MINUTES = 1; // Access token expires in 1 minute
+        const REFRESH_TOKEN_EXPIRE_MINUTES = 3; // Refresh token expires in 2 minutes
+
+        // Function to get the user's location using navigator.geolocation
+        function getLocation() {
+            return new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => resolve(position),
+                        (error) => reject(error)
+                    );
+                } else {
+                    reject(new Error("Geolocation is not supported by this browser."));
+                }
+            });
+        }
+
+        // Function to get the user's location using IP Geolocation as a fallback
+        async function getIPLocation() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                console.log('IP Geolocation data:', data); // Log the IP geolocation data
+                return {
+                    coords: {
+                        latitude: data.latitude,
+                        longitude: data.longitude
+                    }
+                };
+            } catch (error) {
+                console.error('IP Geolocation failed:', error);
+                return null;
+            }
+        }
+
+        // Function to capture OS and Browser info accurately
+        function getOS() {
+            let OSName = "Unknown OS";
+            if (navigator.appVersion.indexOf("Win") != -1) OSName = "Windows";
+            if (navigator.appVersion.indexOf("Mac") != -1) OSName = "MacOS";
+            if (navigator.appVersion.indexOf("X11") != -1) OSName = "UNIX";
+            if (navigator.appVersion.indexOf("Linux") != -1) OSName = "Linux";
+            return OSName;
+        }
+
+        function getBrowser() {
+            let userAgent = navigator.userAgent;
+            let browserName;
+
+            if (userAgent.match(/edg/i)) {
+                browserName = "Edge";
+            } else if (userAgent.match(/opr\//i)) {
+                browserName = "Opera";
+            } else if (userAgent.match(/chrome|chromium|crios/i)) {
+                browserName = "Chrome";
+            } else if (userAgent.match(/firefox|fxios/i)) {
+                browserName = "Firefox";
+            } else if (userAgent.match(/safari/i) && !userAgent.match(/crios|chromium|edg|opr|fxios/i)) {
+                browserName = "Safari";
+            } else {
+                browserName = "No browser detection";
+            }
+
+            return browserName;
+        }
+
+        // Function to refresh the access token
+        async function refreshAccessToken() {
+            const refreshToken = localStorage.getItem('refresh_token');
+            const accessToken = localStorage.getItem('access_token');
+            if (!refreshToken) {
+                console.error('No refresh token found');
+                return null;
+            }
+
+            try {
+                // Get the user's location
+                const position = await getLocation().catch(async () => await getIPLocation());
+                if (!position || !position.coords) {
+                    throw new Error("Unable to retrieve location.");
+                }
+                const location = `${position.coords.latitude},${position.coords.longitude}`;
+
+                // Get OS and Browser info
+                const os = getOS();
+                const browser = getBrowser();
+
+                // Send the refresh request with JSON data
+                const response = await fetch('http://100.89.45.27:8000/auth/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                        current_location: location,
+                        os: os,
+                        browser: browser
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Refresh token error:', errorData);
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Token refresh response:", data);
+
+                // Update tokens in localStorage
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('refresh_token', data.refresh_token);
+                localStorage.setItem('access_token_expires', data.access_token_expires);
+                localStorage.setItem('refresh_token_expires', data.refresh_token_expires);
+                localStorage.setItem('user_info', data.user_info);
+
+                // Schedule the next token refresh
+                scheduleTokenRefresh();
+
+                return data.access_token;
+            } catch (error) {
+                console.error('Token refresh failed:', error);
+                localStorage.clear(); // Clear tokens on failure
+                window.location.href = 'login.html'; // Redirect to login page
+                return null;
+            }
+        }
+
+        // Function to schedule the next token refresh
+        function scheduleTokenRefresh() {
+            const accessTokenExpires = localStorage.getItem('access_token_expires');
+            if (!accessTokenExpires) return;
+
+            const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+            const expiresIn = accessTokenExpires - currentTime; // Time remaining until expiration
+
+            if (expiresIn <= 0) {
+                // Token has already expired, refresh immediately
+                refreshAccessToken();
+            } else {
+                // Schedule refresh 10 seconds before expiration
+                const refreshTime = (expiresIn - 10) * 1000; // Convert to milliseconds
+                setTimeout(refreshAccessToken, refreshTime);
+                console.log(`Next token refresh scheduled in ${refreshTime / 1000} seconds.`);
+            }
+        }
+
+        // Function to check token expiration and refresh if needed
+        async function checkTokenExpiration() {
+            const accessTokenExpires = localStorage.getItem('access_token_expires');
+            if (!accessTokenExpires) return;
+
+            const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+            if (currentTime >= accessTokenExpires) {
+                console.log('Access token expired. Refreshing...');
+                const newAccessToken = await refreshAccessToken();
+                if (!newAccessToken) {
+                    console.error('Failed to refresh access token');
+                    return;
+                }
+            }
+        }
+
+        // Function to fetch data with token refresh handling
+        async function fetchWithTokenRefresh(url, options = {}) {
+            await checkTokenExpiration(); // Check token expiration before making the request
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                console.error('No access token found');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            options.headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`,
+            };
+
+            const response = await fetch(url, options);
+            if (response.status === 401) {
+                // Token might be expired, try refreshing
+                const newToken = await refreshAccessToken();
+                if (newToken) {
+                    options.headers['Authorization'] = `Bearer ${newToken}`;
+                    return await fetch(url, options);
+                } else {
+                    throw new Error('Failed to refresh token');
+                }
+            }
+            return response;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check token expiration on page load
+            await checkTokenExpiration();
+
+            // Schedule the next token refresh
+            scheduleTokenRefresh();
+
+            // Retrieve token, user ID, and role from localStorage
+            const token = localStorage.getItem('access_token');
+            const userId = localStorage.getItem('user_id');
+            const role = localStorage.getItem('role');
+
+            // Redirect if not authenticated or not a doctor
+            if (!token || !userId || role !== 'Doctor') {
+                console.error('Unauthorized access. Redirecting to login page.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const form = document.getElementById('editForm');
+            const urlParams = new URLSearchParams(window.location.search);
+            const patientId = urlParams.get('patient_id');
+
+            if (!patientId) {
+                alert('Patient ID is missing');
+                window.location.href = 'doc.html';
+                return;
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const medication = document.getElementById('medication').value;
+                const dosage = document.getElementById('dosage').value;
+
+                try {
+                    const response = await fetchWithTokenRefresh(`http://100.89.45.27:8000/clinical-services/${patientId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            Medication_Name: medication,
+                            Dosage_Instructions: dosage,
+                        }),
+                    });
+
+                    // Check if the response status is 200 OK
+                    if (response.status === 202) {
+                        const data = await response.json(); // Parse the response body
+                        if (data) {
+                            alert('Patient record update is being prcoessed and will be done soon');
+                            window.location.href = 'doc.html'; // Redirect to the dashboard
+                        } else {
+                            throw new Error('No data returned from the server');
+                        }
+                    } else {
+                        throw new Error(`Failed to update patient record: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to update patient record. Please try again.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

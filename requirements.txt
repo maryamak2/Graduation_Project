@@ -1,0 +1,9 @@
+fastapi
+pydantic
+sqlalchemy
+python-multipart
+python-jose
+bcrypt
+cryptography
+user-agents
+uvicorn

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up Page</title>
+  <link rel="stylesheet" href="try_styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Sign Up</h1>
+    <form id="signup-form" action="#" method="post">
+      <div id="user-id-group" class="form-group">
+        <label for="UserID">UserID</label>
+        <input type="text" id="UserID" name="User_ID">
+      </div>
+      <div class="form-group">
+        <label for="Username">Username</label>
+        <input type="text" id="Username" name="Username" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <div class="form-group">
+        <label for="role">Role</label>
+        <select id="role" name="role" required>
+          <option value="">Select Role</option>
+          <option value="Patient">Patient</option>
+          <option value="Doctor">Doctor</option>
+        </select>
+      </div>
+      <button type="submit" class="btn">Sign Up</button>
+      <p class="redirect">Already have an account? <a href="index.html">Login</a></p>
+    </form>
+  </div>
+  <script>
+    const roleSelect = document.getElementById('role');
+    const userIdGroup = document.getElementById('user-id-group');
+    const userIdInput = document.getElementById('UserID');
+
+    roleSelect.addEventListener('change', function () {
+      if (roleSelect.value === 'Patient') {
+        userIdGroup.style.display = 'block';
+        userIdInput.required = true;
+      } else {
+        userIdGroup.style.display = 'none';
+        userIdInput.required = false;
+        userIdInput.value = ''; // Clear value if hidden
+      }
+    });
+
+    async function handleSignup(event) {
+      event.preventDefault();
+
+      const user = {
+        User_ID: roleSelect.value === 'Patient' ? parseInt(userIdInput.value) : Math.floor(Math.random() * 10000),
+        Username: document.getElementById('Username').value,
+        Password: document.getElementById('password').value,
+        National_ID: 1234567890,  // Placeholder value
+        Full_Name: "John Doe",  // Placeholder value
+        Email: document.getElementById('email').value,
+        Role: roleSelect.value,
+        Last_Login_Date: new Date().toISOString(),
+        Activity_Logs: "Signed up"
+      };
+
+      try {
+        const response = await fetch('http://100.89.45.27:8000/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(user)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Signup failed');
+        }
+
+        const data = await response.json();
+        alert('Signup successful!');
+        console.log('User created:', data);
+        window.location.href = 'index.html';
+      } catch (error) {
+        console.error('Signup failed:', error);
+        alert(error.message || 'Signup failed. Please try again.');
+      }
+    }
+
+    document.getElementById('signup-form').addEventListener('submit', handleSignup);
+  </script>
+</body>
+</html>

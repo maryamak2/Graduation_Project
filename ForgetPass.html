@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgotten Password</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        input, button { margin: 10px; padding: 10px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    
+    <h2>Login with OTP</h2>
+
+    <div id="step1">
+        <input type="email" id="email" placeholder="Enter your email" required>
+        <button onclick="sendOTP()">Send OTP</button>
+    </div>
+
+    <div id="step2" style="display: none;">
+        <input type="text" id="otp" placeholder="Enter OTP" required>
+        <button onclick="verifyOTP()">Verify OTP</button>
+    </div>
+
+    <p id="message"></p>
+
+    <script>
+       async function sendOTP() {
+        const email = document.getElementById("email").value;
+        const messageElement = document.getElementById("message"); // Fix reference
+        
+        if (!email) {
+            messageElement.innerText = "Please enter an email.";
+            return;
+        }
+        
+        try {
+            const checkResponse = await fetch("http://100.89.45.27:8000/check-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email })
+            });
+
+            if (!checkResponse.ok) {
+                const errorResult = await checkResponse.json(); // Parse error message
+                throw new Error(errorResult.detail); // Use FastAPI error message
+            }
+                const checkResult = await checkResponse.json();                
+                messageElement.innerText = checkResult.message; // "Email found! You can proceed with password reset."
+                
+                // Proceed to send OTP if email is valid
+                const otpResponse = await fetch("http://100.89.45.27:4000/send-otp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email })
+                });
+                
+                const otpResult = await otpResponse.json();
+                                
+                if (!otpResponse.ok) {
+                    throw new Error(otpResult.detail);
+                }
+                
+                messageElement.innerText = otpResult.message; // "OTP sent successfully!"
+                document.getElementById("step2").style.display = "block"; // Show OTP input box
+            
+            } catch (error) {
+                console.error("Error:", error);
+                messageElement.innerText = error.message || "Failed to reset password. Please try again.";
+            }
+        }
+
+        async function verifyOTP() {
+            const email = document.getElementById("email").value;
+            const otp = document.getElementById("otp").value;
+
+            const response = await fetch("http://100.89.45.27:4000/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, otp })
+            });
+
+            const result = await response.json();
+            document.getElementById("message").innerText = result.message;
+
+
+            if (result.message === "OTP verified successfully!") {
+                alert("Verified successfully!");
+                // Redirect to the doctor dashboard after successful OTP verification
+                sessionStorage.setItem("reset_email", email); // Store email for password reset
+                window.location.href = "RST_PASS.html"; // Redirect to reset password page
+            } 
+            if (result.message === "Failed to verify OTP!") {
+                alert("Failed to verify OTP!");
+                // Redirect to the login page after failure of OTP verification
+                window.location.href = `index.html`;
+            } 
+        }
+    </script>
+
+</body>
+</html>
