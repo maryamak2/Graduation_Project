@@ -13,16 +13,17 @@ Installation
 9.	If you don’t want to run the files on 3 devices you can simply change all IP’s to localhost (127.0.0.1).
 
 •	Server 1: 
-	ELK and Policy Engine
-	Files: Policy_Engine.py
+  -ELK and Policy Engine
+  -Files: Policy_Engine.py
 
 •	Server 2: 
-	Backend
-	Files: Identity_Management.py, Session_Management.py, dbtestmysql.py, modelsmysql.py, Patient_record_Server.py, main.py
+  -Backend
+  -Files: Identity_Management.py, Session_Management.py, dbtestmysql.py, modelsmysql.py, Patient_record_Server.py, main.py
 
 •	Server 3: 
-	Frontend
-	Files: all .html and .css files.
+  -Frontend
+  -Files: all .html and .css files.
 
 •	All requirements are attached in requirements.txt.
 •	Further explanation 
+
